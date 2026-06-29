@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+ROOT=$(git rev-parse --show-toplevel)
+cd "$ROOT/platform"
+
+STAGED_JAVA=$(mktemp)
+trap 'rm -f "$STAGED_JAVA"' EXIT
+
+git diff --cached --name-only -z --diff-filter=ACMR -- '*.java' > "$STAGED_JAVA"
+
+if [ ! -s "$STAGED_JAVA" ]; then
+  exit 0
+fi
+
+if ! ./mvnw -q spotless:apply; then
+  exit 1
+fi
+
+xargs -0r git add -- < "$STAGED_JAVA"
